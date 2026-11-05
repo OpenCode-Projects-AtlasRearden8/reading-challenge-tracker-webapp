@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Challenge Tracker</title>
+<style>
+  :root {
+    --bg: #faf6f0;
+    --card: #ffffff;
+    --ink: #2d2a26;
+    --muted: #6f675e;
+    --accent: #b3653c;
+    --accent-soft: #f3e2d6;
+    --good: #3d7a4f;
+    --warn: #b3763c;
+    --behind: #a94a3f;
+    --line: #e7ded2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  header {
+    padding: 1.2rem 1.4rem 0.4rem;
+    border-bottom: 3px double var(--line);
+  }
+  header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 0.5px; }
+  header p { margin: 0.2rem 0 0.8rem; color: var(--muted); font-size: 0.9rem; font-style: italic; }
+  nav { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0 1.4rem 0.6rem; }
+  nav button {
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  main { max-width: 880px; margin: 0 auto; padding: 1.2rem 1.4rem 3rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .card h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
+  .card h3 { margin: 0.8rem 0 0.3rem; font-size: 1rem; }
+  .muted { color: var(--muted); font-size: 0.88rem; }
+  .row { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 0.2rem; }
+  .field label { font-size: 0.8rem; color: var(--muted); }
+  input, select {
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+  }
+  button.primary {
+    font-family: inherit;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button.ghost {
+    font-family: inherit;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  .progressbar {
+    height: 14px;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .progressbar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #d38b5f);
+    transition: width 0.4s ease;
+  }
+  .stats { display: flex; gap: 1.4rem; flex-wrap: wrap; margin-top: 0.8rem; }
+  .stat b { font-size: 1.4rem; display: block; }
+  .stat span { font-size: 0.8rem; color: var(--muted); }
+  .pill { display: inline-block; padding: 0 0.55em; border-radius: 999px; font-size: 0.78rem; }
+  .pill.on-pace { background: #e2efe6; color: var(--good); }
+  .pill.ahead { background: #e2efe6; color: var(--good); }
+  .pill.behind { background: #f6e3e0; color: var(--behind); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--line); }
+  th { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  td .mini { font-size: 0.8rem; color: var(--muted); }
+  .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.8rem; }
+  .badge {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    background: var(--card);
+    opacity: 0.55;
+  }
+  .badge.earned { opacity: 1; background: var(--accent-soft); border-color: var(--accent); }
+  .badge b { display: block; }
+  .badge .prog { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+  .loglist { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+  .loglist li { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px dotted var(--line); font-size: 0.9rem; }
+  pre {
+    background: #2d2a26;
+    color: #f4ede4;
+    padding: 0.9rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+  .hidden { display: none; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding-bottom: 2rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reading Challenge Tracker</h1>
+  <p>A year-long reading ally. Everything stays in this browser's storage — no accounts, no network.</p>
+</header>
+<nav id="tabs">
+  <button data-tab="board" class="active">Board</button>
+  <button data-tab="books">Books</button>
+  <button data-tab="log">Pages</button>
+  <button data-tab="badges">Badges</button>
+  <button data-tab="goal">Goal</button>
+  <button data-tab="wrapup">Wrap-up</button>
+</nav>
+<main>
+
+  <section id="tab-board">
+    <div class="card">
+      <h2 id="board-title">Progress Board</h2>
+      <div class="progressbar"><span id="board-bar" style="width:0%"></span></div>
+      <div class="stats" id="board-stats"></div>
+      <p class="muted" id="board-note" style="margin-bottom:0"></p>
+    </div>
+    <div class="card">
+      <h2>Recent Finishes</h2>
+      <div id="board-recent" class="muted">No books logged yet — head to the Books tab.</div>
+    </div>
+  </section>
+
+  <section id="tab-books" class="hidden">
+    <div class="card">
+      <h2>Log a Finished Book</h2>
+      <form id="book-form">
+        <div class="row">
+          <div class="field"><label for="f_title">Title *</label><input id="f_title" required></div>
+          <div class="field"><label for="f_author">Author</label><input id="f_author"></div>
+          <div class="field"><label for="f_genre">Genre</label><input id="f_genre" list="genre-list" placeholder="Fantasy, Mystery…"></div>
+          <datalist id="genre-list"></datalist>
+          <div class="field"><label for="f_format">Format</label>
+            <select id="f_format">
+              <option value="physical">Physical</option>
+              <option value="ebook">Ebook</option>
+              <option value="audiobook">Audiobook</option>
+            </select>
+          </div>
+          <div class="field"><label for="f_pages">Pages</label><input id="f_pages" type="number" min="0" max="20000"></div>
+          <div class="field"><label for="f_date">Finished</label><input id="f_date" type="date"></div>
+        </div>
+        <div class="row" style="margin-top:0.6rem">
+          <label><input type="checkbox" id="f_novella" style="width:auto"> Novella</label>
+          <label><input type="checkbox" id="f_buddy" style="width:auto"> Buddy read</label>
+          <button class="primary" type="submit">Add book</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2 id="books-count">Books</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Title</th><th>Genre</th><th>Format</th><th>Pages</th><th>Finished</th><th></th></tr></thead>
+          <tbody id="books-body"></tbody>
+        </table>
+      </div>
+      <p class="muted">Pro-tip: check the boxes before adding to credit novellas and buddy reads toward badges.</p>
+    </div>
+  </section>
+
+  <section id="tab-log" class="hidden">
+    <div class="card">
+      <h2>Today's Pages</h2>
+      <div class="row">
+        <div class="field"><label for="log-pages">Pages read today</label>
+          <input id="log-pages" type="number" min="0" max="5000" style="width:9rem">
+        </div>
+        <button class="primary" id="log-save">Save today</button>
+        <button class="ghost" id="log-clear">Clear today</button>
+      </div>
+      <p class="muted" id="streak-note" style="margin-bottom:0"></p>
+    </div>
+    <div class="card">
+      <h2>Page Log</h2>
+      <ul class="loglist" id="log-list"></ul>
+    </div>
+  </section>
+
+  <section id="tab-badges" class="hidden">
+    <div class="card">
+      <h2>Badge Shelf</h2>
+      <p class="muted">Format and genre badges (audiobook, novella, buddy read) are awarded automatically as you log books, streaks build from your page log.</p>
+      <div class="badges" id="badge-grid"></div>
+    </div>
+  </section>
+
+  <section id="tab-goal" class="hidden">
+    <div class="card">
+      <h2>Challenge Goal</h2>
+      <div class="row">
+        <div class="field"><label for="goal-num">Books to finish this year</label>
+          <input id="goal-num" type="number" min="1" max="1000" style="width:8rem">
+        </div>
+        <button class="primary" id="goal-save">Save goal</button>
+      </div>
+      <h3>Data</h3>
+      <div class="row">
+        <button class="ghost" id="data-export">Download full backup (JSON)</button>
+        <button class="ghost" id="data-import-btn">Load backup file</button>
+        <input type="file" id="data-import" accept=".json,application/json" class="hidden">
+        <button class="ghost" id="sample">Load sample data</button>
+        <button class="ghost" id="wipe" style="color:var(--behind)">Erase everything</button>
+      </div>
+      <p class="muted" style="margin-bottom:0">Backups keep your data portable between browsers and devices.</p>
+    </div>
+  </section>
+
+  <section id="tab-wrapup" class="hidden">
+    <div class="card">
+      <h2>End-of-Year Wrap-up</h2>
+      <p class="muted">A shareable summary of your reading year. Preview below, export as Markdown.</p>
+      <pre id="wrapup-preview"></pre>
+      <button class="primary" id="wrapup-download">Download wrap-up (markdown)</button>
+    </div>
+  </section>
+
+</main>
+<footer>
+  Reading Challenge Tracker · an offline, local-first tool · © Asdale Dynamics, LLC · MIT · data never leaves this device
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var STORAGE_KEY = 'reading-challenge-tracker:v1';
+
+  // ---------- Pure progress math (tested by tests.mjs) ----------
+
+  function computeBookPages(book) {
+    if (!book || typeof book !== 'object') return 0;
+    var p = book.pages;
+    if (typeof p !== 'number' || p < 0 || !isFinite(p)) return 0;
+    return Math.round(p);
+  }
+
+  function computeTotals(books) {
+    var list = books || [];
+    var pages = 0, authors = {}, genres = {}, formats = {};
+    for (var i = 0; i < list.length; i++) {
+      pages += computeBookPages(list[i]);
+      var a = list[i].author || 'Unknown';
+      authors[a] = (authors[a] || 0) + 1;
+      var g = list[i].genre || 'Unsorted';
+      genres[g] = (genres[g] || 0) + 1;
+      var f = list[i].format || 'physical';
+      formats[f] = (formats[f] || 0) + 1;
+    }
+    return {
+      count: list.length,
+      pages: pages,
+      authors: authors,
+      genres: genres,
+      formats: formats,
+      novellas: list.filter(function (b) { return b.novella; }).length,
+      buddyReads: list.filter(function (b) { return b.buddy; }).length
+    };
+  }
+
+  function daysInYear(year) {
+    return year % 400 === 0 || (year % 4 === 0 && year % 100 !== 0) ? 366 : 365;
+  }
+
+  function completionPct(done, goal) {
+    if (!goal || goal <= 0) return 0;
+    return Math.min(100, Math.round((done / goal) * 100));
+  }
+
+  function expectedByDayOfYear(goal, dayOfYear, year) {
+    if (!goal || goal <= 0) return 0;
+    var d = Math.min(Math.max(dayOfYear, 0), daysInYear(year));
+    return goal * (d / daysInYear(year));
+  }
+
+  function paceDelta(done, goal, dayOfYear, year) {
+    // Positive = ahead of pace, negative = behind. Fractions kept for accuracy; UI rounds.
+    if (!goal || goal <= 0) return 0;
+    return done - expectedByDayOfYear(goal, dayOfYear, year);
+  }
+
+  function computeStreak(pageLog, todayISO) {
+    // Today counts only if already logged; otherwise the streak runs from yesterday.
+    var aDay = 86400000;
+    var parse = function (iso) {
+      var p = iso.split('-');
+      return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+    };
+    var todayMs = parse(todayISO);
+    var hasToday = typeof (pageLog || {})[todayISO] === 'number' && pageLog[todayISO] > 0;
+    var cursor = hasToday ? todayMs : todayMs - aDay;
+    var streak = 0;
+    while (true) {
+      var d = new Date(cursor);
+      var iso = d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+      var val = (pageLog || {})[iso];
+      if (typeof val === 'number' && val > 0) { streak++; cursor -= aDay; }
+      else break;
+    }
+    return streak;
+  }
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function todayISO(now) {
+    var d = now || new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function dayOfYear(dateLike) {
+    var d = dateLike || new Date();
+    var start = Date.UTC(d.getFullYear(), 0, 1);
+    return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - start) / 86400000) + 1;
+  }
+
+  function computeBadges(books, streak, pageLog) {
+    var t = computeTotals(books);
+    var distinctGenres = Object.keys(t.genres).filter(function (g) { return g !== 'Unsorted'; }).length;
+    var topGenre = 0;
+    Object.keys(t.genres).forEach(function (g) { if (t.genres[g] > topGenre) topGenre = t.genres[g]; });
+    var audiobooks = t.formats.audiobook || 0;
+    var pageList = (pageLog || {});
+    var badgeDefs = [
+      { id: 'first-book', name: 'First Steps', desc: 'Finish your first book of the year', n: t.count, d: 1, unit: 'book' },
+      { id: 'quarter', name: 'Quarter Way', desc: 'Reach 25% of your goal', n: completionPct(t.count, goalRef.goal), d: 25, unit: '%' },
+      { id: 'half', name: 'Halfway Hero', desc: 'Reach 50% of your goal', n: completionPct(t.count, goalRef.goal), d: 50, unit: '%' },
+      { id: 'threequarter', name: 'Three-Quarter', desc: 'Reach 75% of your goal', n: completionPct(t.count, goalRef.goal), d: 75, unit: '%' },
+      { id: 'champion', name: 'Challenge Champion', desc: 'Hit 100% of your goal', n: completionPct(t.count, goalRef.goal), d: 100, unit: '%' },
+      { id: 'genre-explorer', name: 'Genre Explorer', desc: 'Finish books in 4 different genres', n: distinctGenres, d: 4, unit: 'genres' },
+      { id: 'genre-deep', name: 'Genre Deep Dive', desc: 'Finish 3 books in a single genre', n: topGenre, d: 3, unit: 'books' },
+      { id: 'audio-ally', name: 'Audio Ally', desc: 'Finish 3 audiobooks', n: audiobooks, d: 3, unit: 'audio' },
+      { id: 'novella-rush', name: 'Novella Rush', desc: 'Finish 3 novellas', n: t.novellas, d: 3, unit: 'novellas' },
+      { id: 'buddy-reader', name: 'Buddy Reader', desc: 'Finish 2 buddy reads', n: t.buddyReads, d: 2, unit: 'buddies' },
+      { id: 'week-streak', name: 'Week Streak', desc: 'Log pages 7 days in a row', n: streak, d: 7, unit: 'days' },
+      { id: 'month-streak', name: 'Month Streak', desc: 'Log pages 30 days in a row', n: streak, d: 30, unit: 'days' },
+      { id: 'pages-10k', name: 'Ten Thousand Pages', desc: 'Read 10,000 pages total', n: t.pages, d: 10000, unit: 'pages' }
+    ];
+    return badgeDefs.map(function (b) {
+      return { id: b.id, name: b.name, desc: b.desc, earned: b.n >= b.d, progress: Math.min(b.n, b.d), target: b.d, unit: b.unit };
+    });
+  }
+
+  var goalRef = { goal: 0 }; // set on load so badges can compute goal-relative progress
+
+  function buildWrapup(state, year) {
+    var t = computeTotals(state.books);
+    var lines = [];
+    lines.push('# ' + year + ' Reading Year in Review');
+    lines.push('');
+    lines.push('**Books finished:** ' + t.count + ' of ' + (state.goal || t.count) + ' (' + completionPct(t.count, state.goal) + '% of goal)');
+    lines.push('**Pages read:** ' + t.pages);
+    lines.push('**Longest page streak:** ' + (state.bestStreak || 0) + ' days');
+    lines.push('');
+    lines.push('## Highlights');
+    var genres = Object.keys(t.genres);
+    if (genres.length) {
+      lines.push('- ' + genres.length + ' genre' + (genres.length === 1 ? '' : 's') + ' explored');
+      genres.sort(function (a, b) { return t.genres[b] - t.genres[a]; }).slice(0, 3).forEach(function (g) {
+        lines.push('  - ' + g + ': ' + t.genres[g]);
+      });
+    }
+    lines.push('- Audiobooks: ' + (t.formats.audiobook || 0) + ' · Novellas: ' + t.novellas + ' · Buddy reads: ' + t.buddyReads);
+    var authors = Object.keys(t.authors);
+    if (authors.length > 1) lines.push('- ' + authors.length + ' different authors');
+    lines.push('');
+    lines.push('## Every book');
+    (state.books || []).forEach(function (b, i) {
+      var bits = [b.author || 'Unknown', (b.genre || 'Unsorted'), (b.format || 'physical')];
+      var tag = [];
+      if (b.novella) tag.push('novella');
+      if (b.buddy) tag.push('buddy read');
+      if (tag.length) bits.push(tag.join(' + '));
+      lines.push((i + 1) + '. **' + (b.title || 'Untitled') + '** — ' + bits.join(' · '));
+    });
+    lines.push('');
+    lines.push('Tracked locally with Reading Challenge Tracker. — Asdale Dynamics, LLC');
+    return lines.join('\n');
+  }
+
+  // ---------- State ----------
+
+  function defaultState() {
+    return { year: new Date().getFullYear(), goal: 12, books: [], pageLog: {}, bestStreak: 0 };
+  }
+
+  function loadState() {
+    try {
+      var raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      if (!raw) return defaultState();
+      var p = JSON.parse(raw);
+      var s = defaultState();
+      if (typeof p.year === 'number') s.year = p.year;
+      if (typeof p.goal === 'number' && p.goal > 0) s.goal = p.goal;
+      if (Array.isArray(p.books)) s.books = p.books;
+      if (p.pageLog && typeof p.pageLog === 'object') s.pageLog = p.pageLog;
+      if (typeof p.bestStreak === 'number') s.bestStreak = p.bestStreak;
+      return s;
+    } catch (e) {
+      return defaultState();
+    }
+  }
+
+  function saveState(state) {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function makeBook(fields) {
+    return {
+      id: 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+      title: (fields.title || '').trim(),
+      author: (fields.author || '').trim(),
+      genre: (fields.genre || '').trim(),
+      format: fields.format || 'physical',
+      pages: typeof fields.pages === 'number' && isFinite(fields.pages) && fields.pages >= 0 ? Math.round(fields.pages) : null,
+      finished: fields.finished || todayISO(),
+      novella: !!fields.novella,
+      buddy: !!fields.buddy
+    };
+  }
+
+  function sampleData() {
+    var year = new Date().getFullYear();
+    var books = [
+      { title: 'The House in the Cerulean Sea', author: 'TJ Klune', genre: 'Fantasy', format: 'physical', pages: 408 },
+      { title: 'The Bell', author: 'Gwen Kessler', genre: 'Mystery', format: 'audiobook', pages: 180, novella: true },
+      { title: 'Sea State', author: 'Mia Ortiz', genre: 'Mystery', format: 'audiobook', pages: 210 },
+      { title: 'Paper Tides', author: 'Mia Ortiz', genre: 'Mystery', format: 'physical', pages: 260 },
+      { title: 'Two Readers, One Coffee', author: 'A. Friend', genre: 'Nonfiction', format: 'ebook', pages: 195, novella: true, buddy: true },
+      { title: 'Quiet Letters', author: 'N. Rowe', genre: 'Nonfiction', format: 'ebook', pages: 205, buddy: true }
+    ].map(function (b, i) {
+      return {
+        id: 'sample' + i,
+        title: b.title,
+        author: b.author || '',
+        genre: b.genre || '',
+        format: b.format || 'physical',
+        pages: typeof b.pages === 'number' ? b.pages : null,
+        finished: year + '-0' + ((i % 9) + 1) + '-1' + (i + 1),
+        novella: !!b.novella,
+        buddy: !!b.buddy
+      };
+    });
+    var pageLog = {};
+    for (var i = 0; i < 8; i++) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      pageLog[d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())] = 20 + i * 13;
+    }
+    return { year: year, goal: 20, books: books, pageLog: pageLog, bestStreak: 8 };
+  }
+
+  // ---------- Exposed for tests ----------
+
+  var RCT = {
+    computeTotals: computeTotals,
+    computeBookPages: computeBookPages,
+    completionPct: completionPct,
+    expectedByDayOfYear: expectedByDayOfYear,
+    paceDelta: paceDelta,
+    daysInYear: daysInYear,
+    computeStreak: computeStreak,
+    computeBadges: computeBadges,
+    buildWrapup: buildWrapup,
+    dayOfYear: dayOfYear,
+    todayISO: todayISO,
+    makeBook: makeBook,
+    loadState: loadState,
+    saveState: saveState,
+    defaultState: defaultState,
+    goalRef: goalRef,
+    STORAGE_KEY: STORAGE_KEY
+  };
+  if (typeof window !== 'undefined') window.RCT = RCT;
+
+  // ---------- UI (skipped in test harness; requires document) ----------
+
+  var hasDOM = typeof document !== 'undefined' && typeof document.getElementById === 'function';
+
+  if (!hasDOM) return;
+
+  var state = loadState();
+  goalRef.goal = state.goal;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtDate(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || '—';
+    var p = iso.split('-');
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[+p[1] - 1] + ' ' + (+p[2]) + ', ' + p[0];
+  }
+
+  function switchTab(name) {
+    var tabs = document.querySelectorAll('#tabs button');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab') === name);
+    }
+    var sections = ['board', 'books', 'log', 'badges', 'goal', 'wrapup'];
+    sections.forEach(function (s) { $('tab-' + s).classList.toggle('hidden', s !== name); });
+  }
+
+  function renderBoard() {
+    var done = state.books.length;
+    var goal = state.goal;
+    var pct = completionPct(done, goal);
+    $('board-title').textContent = state.year + ' Progress Board';
+    $('board-bar').style.width = pct + '%';
+    var doy = dayOfYear(new Date());
+    var diY = daysInYear(state.year);
+    var delta = Math.round(paceDelta(done, goal, doy, state.year) * 10) / 10;
+    var paceClass = delta >= 0 ? (delta >= 1 ? 'ahead' : 'on-pace') : 'behind';
+    var paceLabel = delta >= 0 ? (delta >= 1 ? 'ahead of pace' : 'on pace') : 'behind pace';
+    var streak = computeStreak(state.pageLog, todayISO(new Date()));
+    if (streak > state.bestStreak) {
+      state.bestStreak = streak;
+      saveState(state);
+    }
+    var pagesTotal = computeTotals(state.books).pages;
+    $('board-stats').innerHTML =
+      '<div class="stat"><b>' + done + '</b><span>books · goal ' + goal + '</span></div>' +
+      '<div class="stat"><b>' + pct + '%</b><span>complete</span></div>' +
+      '<div class="stat"><b>' + Math.round(expectedByDayOfYear(goal, doy, state.year) * 10) / 10 + '</b><span>where pace says you should be</span></div>' +
+      '<div class="stat"><b><span class="pill ' + paceClass + '">' + (delta >= 0 ? '+' : '') + delta + '</span></b><span>' + paceLabel + '</span></div>' +
+      '<div class="stat"><b>' + streak + '</b><span>day page streak</span></div>' +
+      '<div class="stat"><b>' + pagesTotal + '</b><span>pages logged</span></div>';
+    var paceSays = expectedByDayOfYear(goal, doy, state.year);
+    if (goal > 0 && done < goal) {
+      var perWeek = goal - done > 0 && doy < diY && doy > 0
+        ? (goal - done) / Math.max(1, (diY - doy) / 7)
+        : null;
+      $('board-note').innerHTML = perWeek != null
+        ? 'To finish ' + goal + ' books by Dec 31, aim for about <b>' + (Math.ceil(perWeek * 10) / 10) + '</b> book' + (perWeek === 1 ? '' : 's') + ' per week.'
+        : '';
+    } else if (goal > 0 && done >= goal) {
+      $('board-note').innerHTML = '<b>Challenge complete \u2014 congratulations! 🎉</b> Every book after this is bonus bragging rights.';
+    } else {
+      $('board-note').textContent = 'Set a goal on the Goal tab to see pace guidance.';
+    }
+
+    var recent = state.books.slice().sort(function (a, b) { return (b.finished || '').localeCompare(a.finished || ''); }).slice(0, 5);
+    if (recent.length) {
+      $('board-recent').innerHTML = '<ul class="loglist">' + recent.map(function (b) {
+        return '<li>' + escapeHtml(b.title) + ' <span class="mini">· ' + escapeHtml(b.genre || 'Unsorted') + ' · ' + fmtDate(b.finished) + '</span></li>';
+      }).join('') + '</ul>';
+    } else {
+      $('board-recent').textContent = 'No books logged yet — head to the Books tab.';
+    }
+  }
+
+  function renderBooks() {
+    var body = $('books-body');
+    if (!state.books.length) {
+      body.innerHTML = '<tr><td colspan="6" class="muted">No books yet. Add your first finish above!</td></tr>';
+    } else {
+      body.innerHTML = state.books.map(function (b) {
+        return '<tr><td>' + escapeHtml(b.title) + (b.novella ? ' <span class="mini">(novella)</span>' : '') + (b.buddy ? ' <span class="mini">(buddy)</span>' : '') +
+          '</td><td>' + escapeHtml(b.genre || '—') + '</td><td>' + escapeHtml(b.format) + '</td><td>' + (b.pages || '—') + '</td><td class="mini">' + fmtDate(b.finished) +
+          '</td><td><button class="ghost" data-del="' + escapeHtml(b.id) + '">×</button></td></tr>';
+      }).join('');
+    }
+    $('books-count').textContent = 'Books (' + state.books.length + ')';
+    var gset = {};
+    state.books.forEach(function (b) {
+      if (b.genre && !gset[b.genre]) {
+        gset[b.genre] = true;
+        var add = '<option value="' + escapeHtml(b.genre) + '"></option>';
+        var list = $('genre-list');
+        if (!list.innerHTML.includes(add)) list.innerHTML += add;
+      }
+    });
+  }
+
+  function renderLog() {
+    var keys = Object.keys(state.pageLog).sort().reverse();
+    if (!keys.length) {
+      $('log-list').innerHTML = '<li class="muted">Nothing yet — log today\u2019s pages above.</li>';
+    } else {
+      $('log-list').innerHTML = keys.map(function (k) {
+        return '<li><span>' + fmtDate(k) + '</span><b>' + state.pageLog[k] + ' pages</b></li>';
+      }).join('');
+    }
+    $('streak-note').innerHTML = 'Current streak: <b>' + computeStreak(state.pageLog, todayISO(new Date())) + '</b> day(s). Log any nonzero pages to extend it.';
+    $('log-pages').value = state.pageLog[todayISO(new Date())] || '';
+  }
+
+  function renderBadges() {
+    var streak = computeStreak(state.pageLog, todayISO(new Date()));
+    if (streak > state.bestStreak) { state.bestStreak = streak; saveState(state); }
+    var badges = computeBadges(state.books, streak, state.pageLog);
+    $('badge-grid').innerHTML = badges.map(function (b) {
+      return '<div class="badge' + (b.earned ? ' earned' : '') + '"><b>' + (b.earned ? '🏅 ' : '') + escapeHtml(b.name) + '</b>' +
+        '<div class="mini">' + escapeHtml(b.desc) + '</div>' +
+        '<div class="prog">' + (b.unit === '%' ? b.progress + '% of ' + b.target + '%' : b.progress + ' / ' + b.target + ' ' + b.unit) + '</div></div>';
+    }).join('');
+  }
+
+  function renderWrapup() {
+    $('wrapup-preview').textContent = buildWrapup(state, state.year);
+  }
+
+  function renderAll() {
+    renderBoard();
+    renderBooks();
+    renderLog();
+    renderBadges();
+    renderWrapup();
+    $('goal-num').value = state.goal;
+  }
+
+  // Tab nav
+  $('tabs').addEventListener('click', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('data-tab')) switchTab(e.target.getAttribute('data-tab'));
+  });
+
+  // Add book
+  $('book-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var title = $('f_title').value.trim();
+    if (!title) return;
+    var pagesRaw = parseFloat($('f_pages').value);
+    state.books.push(makeBook({
+      title: title,
+      author: $('f_author').value,
+      genre: $('f_genre').value,
+      format: $('f_format').value,
+      pages: isFinite(pagesRaw) && pagesRaw >= 0 ? Math.round(pagesRaw) : null,
+      finished: $('f_date').value || todayISO(new Date()),
+      novella: $('f_novella').checked,
+      buddy: $('f_buddy').checked
+    }));
+    saveState(state);
+    $('f_title').value = ''; $('f_author').value = ''; $('f_genre').value = '';
+    $('f_pages').value = ''; $('f_novella').checked = false; $('f_buddy').checked = false;
+    renderAll();
+    switchTab('books');
+  });
+
+  // Delete book
+  $('books-body').addEventListener('click', function (e) {
+    var id = e.target.getAttribute && e.target.getAttribute('data-del');
+    if (!id) return;
+    state.books = state.books.filter(function (b) { return b.id !== id; });
+    saveState(state);
+    renderAll();
+  });
+
+  // Page log
+  $('log-save').addEventListener('click', function () {
+    var v = parseInt($('log-pages').value, 10);
+    if (isNaN(v) || v < 0) return;
+    if (v === 0) delete state.pageLog[todayISO(new Date())];
+    else state.pageLog[todayISO(new Date())] = v;
+    saveState(state);
+    renderAll();
+  });
+  $('log-clear').addEventListener('click', function () {
+    delete state.pageLog[todayISO(new Date())];
+    $('log-pages').value = '';
+    saveState(state);
+    renderAll();
+  });
+
+  // Goal
+  $('goal-save').addEventListener('click', function () {
+    var v = parseInt($('goal-num').value, 10);
+    if (isNaN(v) || v < 1) { v = 1; }
+    state.goal = Math.min(v, 1000);
+    goalRef.goal = state.goal;
+    saveState(state);
+    renderAll();
+  });
+
+  // Data portability
+  $('data-export').addEventListener('click', function () {
+    download(state.year + '-reading-tracker-backup.json', JSON.stringify({ app: 'reading-challenge-tracker', ...state }, null, 2), 'application/json');
+  });
+  $('data-import-btn').addEventListener('click', function () { $('data-import').click(); });
+  $('data-import').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var p = JSON.parse(String(reader.result));
+        if (!p || !Array.isArray(p.books)) throw new Error('bad file');
+        state.year = typeof p.year === 'number' ? p.year : state.year;
+        state.goal = typeof p.goal === 'number' && p.goal > 0 ? p.goal : state.goal;
+        state.books = p.books;
+        state.pageLog = p.pageLog && typeof p.pageLog === 'object' ? p.pageLog : {};
+        state.bestStreak = typeof p.bestStreak === 'number' ? p.bestStreak : 0;
+        goalRef.goal = state.goal;
+        saveState(state);
+        renderAll();
+        switchTab('board');
+      } catch (err) {
+        alert('Could not read that backup file.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  $('sample').addEventListener('click', function () {
+    if (state.books.length && !window.confirm('Replace current data with sample data?')) return;
+    state = sampleData();
+    goalRef.goal = state.goal;
+    saveState(state);
+    renderAll();
+    switchTab('board');
+  });
+
+  $('wipe').addEventListener('click', function () {
+    if (!window.confirm('Erase all books, pages and settings? This cannot be undone.')) return;
+    state = defaultState();
+    goalRef.goal = state.goal;
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(STORAGE_KEY);
+    renderAll();
+    switchTab('goal');
+  });
+
+  // Wrap-up export
+  $('wrapup-download').addEventListener('click', function () {
+    download(state.year + '-reading-wrap-up.md', buildWrapup(state, state.year), 'text/markdown');
+  });
+
+  function download(filename, text, mime) {
+    var blob = new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // First paint
+  $('f_date').value = todayISO(new Date());
+  renderAll();
+  switchTab('board');
+})();
+</script>
+</body>
+</html>
